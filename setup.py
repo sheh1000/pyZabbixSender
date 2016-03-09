@@ -8,7 +8,10 @@ def read(fname):
 
 setupconf = dict(
     name="pyZabbixSender",
-    py_modules=["pyZabbixSender"],
+    py_modules=[
+        "pyZabbixSender",
+        "pyZabbixSenderBase",
+    ],
     author="Kurt Momberg",
     author_email="kurtqm@yahoo.com.ar",
     description="Python implementation of zabbix_sender.",

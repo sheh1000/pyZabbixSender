@@ -95,7 +95,7 @@ class pyZabbixSender:
 
         response_header = sock.recv(5)
         if not response_header == 'ZBXD\1':
-            err_message = u'Invalid response from server. Malformed data?\n---\n%s\n---\n' % str(mydata)
+            err_message = u'Invalid response from server [%s]. Malformed data?\n---\n%s\n---\n' % (repr(response_header),str(mydata))
             sys.stderr.write(err_message)
             return self.RC_ERR_INV_RESP, err_message
 

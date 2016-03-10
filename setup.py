@@ -9,6 +9,7 @@ def read(fname):
 setupconf = dict(
     name="pyZabbixSender",
     py_modules=[
+        "txZabbixSender",
         "pyZabbixSender",
         "pyZabbixSenderBase",
     ],

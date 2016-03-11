@@ -5,11 +5,29 @@ Python implementation of zabbix_sender.
 
 This is a module that allows you to send data to a [Zabbix] server using Python. You don't need the zabbix_sender binary anymore.
 
+Users of the [Twisted] library can use an asynchronous version of the sender.
+
 Has been tested with Python 2.5.1 and 2.7
 
 Python 2.5.1 doesn't have a json module (needed to implement zabbix protocol), so you can use [simplejson] instead.
 
+Installation
+------------
+
+Install the package using a pip from the original repository:
+```bash
+pip install "git+git@github.com:kmomberg/pyZabbixSender.git"
+```
+or from one of the mirrors, like:
+```bash
+pip install "git+git@github.com:baseride/pyZabbixSender.git"
+```
+
+Usage
+-----
+
 Source code contains samples and comments to allows you start using it in no time. Here's a small example:
+
 ```python
 # Creating a sender object
 z = pyZabbixSender(server="zabbix-server", port=10051)
@@ -35,8 +53,7 @@ z.clearData()
 z.sendSingle("test_host","test_trap","12")
 ```
 
-There are some more options, so take a look and discover how easy is to use it ;)
-
+There are some more options, so take a look at the [wiki] page and discover how easy is to use it ;)
 
 License
 ----
@@ -46,3 +63,4 @@ GNU GPLv2
 [Zabbix]:http://www.zabbix.com/
 [simplejson]:https://simplejson.readthedocs.org/en/latest/
 [wiki]:https://github.com/kmomberg/pyZabbixSender/wiki
+[Twisted]:https://twistedmatrix.com

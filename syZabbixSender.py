@@ -6,144 +6,49 @@
 # >>>> Based on work by Enrico Tröger <enrico(dot)troeger(at)uvena(dot)de>
 # License: GNU GPLv2
 
-from twisted.internet.endpoints import TCP4ServerEndpoint
-from twisted.internet import reactor,address,defer
-
-from twisted.python import log, failure
-
-from twisted.internet import protocol, reactor
-from zope.interface import implements
-from twisted.internet import interfaces,error
-
+import socket
 import struct
 import time
 import sys
 import re
 
-# If you're using an old version of python that don't have json available,
-# you can use simplejson instead: https://simplejson.readthedocs.org/en/latest/
-#import simplejson as json
-import json
-
 from pyZabbixSenderBase import *
 
-class SenderProtocol(protocol.Protocol):
-    def __init__(self,factory):
-        self.factory = factory
-        self.reset()
+class syZabbixSender(pyZabbixSenderBase):
+    '''
+    This class allows you to send data to a Zabbix server, using the same
+    protocol used by the zabbix_server binary distributed by Zabbix.
 
-    def reset(self):
-        self.tail = ''
-        self.state = 'magic'
+    It uses exceptions to report errors.
+    '''
 
-    def dataReceived(self, data):
-        log.msg("RECEIVED DATA: %s" % len(data))
-        while len(data):
-            l = self.parseData(data)
-            log.msg("PARSED DATA: %s" % l)
-            if l:
-                data = data[l:]
-            else:
-                self.error_happens(failure.Failure(InvalidResponse("Unknown data chunk")))
-                self.transport.loseConnection()
-                break
-
-    def parseData(self,data):
-        d = self.tail + data
-        l = self._expected_length()
-        if len(d) < l:
-            self.tail = d
-            return len(data)
-
-        self._expected_parse(d[0:l])
-        taill = len(self.tail)
-        self.tail = ''
-        return l - taill
-
-    def _expected_length(self):
-        m = getattr(self,'_expected_length_'+self.state)
-        return m()
-
-    def _expected_parse(self,data):
-        m = getattr(self,'_expected_parse_'+self.state)
-        return m(data)
-
-    def _expected_length_magic(self):
-        return 5
-
-    def _expected_parse_magic(self,data):
-        if not data == 'ZBXD\1':
-            self.error_happens(failure.Failure(InvalidResponse("Wrong magic: %s" % data)))
-            self.transport.loseConnection()
-            return
-        self.state = 'header'
-
-    def _expected_length_header(self):
-        return 8
-
-    def _expected_parse_header(self,data):
-        self._data_length, = struct.unpack('i',data[:4])
-        log.msg("Received length: %s" % self._data_length)
-        self.state = 'data'
-
-    def _expected_length_data(self):
-        return self._data_length
-
-    def _expected_parse_data(self,data):
-        packet = {}
-        self.state = 'header'
-        try:
-            packet = json.loads(data)
-        except Exception,ex:
-            f = failure.Failure()
-            self.error_happens(f)
-            self.transport.loseConnection()
-            return
-        log.msg("Received packet: %s" % packet)
-        try:
-            self.packet_received(packet)
-        except Exception,ex:
-            f = failure.Failure()
-            self.error_happens(f)
-            self.transport.loseConnection()
-            return
-        self.state = 'done'
-        self.transport.loseConnection() # Normally the Zabbix expects closing connection from the sender
-
-    def packet_received(self,packet):
-        raise NotImplemented()
-
-    def error_happens(self,fail):
-        log.err(fail)
-
-    def send_packet(self,packet):
-        '''sends a packet in form of json'''
-        log.msg("Sending a packet: %s" % packet)
-        try:
-            data = json.dumps(packet)
-        except Exception,ex:
-            f = failure.Failure()
-            self.error_happens(f)
-            self.transport.loseConnection()
-            return
-        data_length = len(data)
-        data_header = str(struct.pack('q', data_length))
-        data_to_send = 'ZBXD\1' + str(data_header) + data
-        self.transport.write(data_to_send)
-        log.msg("Packet sent: %s" % data_to_send)
-
-class SenderProcessor(SenderProtocol):
     FAILED_COUNTER = re.compile('^.*failed.+?(\d+).*$')
     PROCESSED_COUNTER = re.compile('^.*processed.+?(\d+).*$')
     SECONDS_SPENT = re.compile('^.*seconds spent.+?((-|\+|\d|\.|e|E)+).*$')
-    def __init__(self,factory,packet,deferred):
-        SenderProtocol.__init__(self,factory)
-        self.deferred = deferred
-        self.packet = packet
 
-    def connectionMade(self):
-        self.send_packet(self.packet)
-    def packet_received(self,packet):
+    def send_packet(self, packet):
+        '''
+        This is the method that actually sends the data to the zabbix server.
+        '''
+        mydata = json.dumps(packet)
+        socket.setdefaulttimeout(self.timeout)
+        data_length = len(mydata)
+        data_header = str(struct.pack('q', data_length))
+        data_to_send = 'ZBXD\1' + str(data_header) + str(mydata)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self.zserver, self.zport))
+        sock.send(data_to_send)
+
+        response_header = sock.recv(5)
+        if not response_header == 'ZBXD\1':
+            raise InvalidResponse('Wrong magic: %s' % response_header)
+
+        response_data_header = sock.recv(8)
+        response_data_header = response_data_header[:4]
+        response_len = struct.unpack('i', response_data_header)[0]
+        response_raw = sock.recv(response_len)
+        sock.close()
+        response = json.loads(response_raw)
         failed = self.FAILED_COUNTER.match(packet['info'].lower() if 'info' in packet else '')
         processed = self.PROCESSED_COUNTER.match(packet['info'].lower() if 'info' in packet else '')
         seconds_spent = self.SECONDS_SPENT.match(packet['info'].lower() if 'info' in packet else '')
@@ -152,46 +57,12 @@ class SenderProcessor(SenderProtocol):
         failed = int(failed.group(1))
         processed = int(processed.group(1))
         seconds_spent = float(seconds_spent.group(1)) if seconds_spent else None
-        packet['info'] = {
+        response['info'] = {
             'failed':failed,
             'processed':processed,
             'seconds spent':seconds_spent
         }
-        #if failed > 0 and processed == 0:
-        #    raise Exception('All failures from zabbix server returned',packet)
-        self.deferred.callback(packet)
-    def error_happens(self,fail):
-        self.deferred.errback(fail)
-
-class SenderFactory(protocol.ClientFactory):
-    def __init__(self,packet,deferred):
-        self.deferred = deferred
-        self.packet = packet
-    def buildProtocol(self,addr):
-        return SenderProcessor(self,self.packet,self.deferred)
-
-    def clientConnectionFailed(self, connector, reason):
-        if not self.deferred.called:
-            log.err("ERROR: connecting has been failed because of:%s, sending data has been skipped" % reason)
-            self.deferred.errback(reason)
-
-    def clientConnectionLost(self, connector, reason):
-        if not isinstance(reason.value,error.ConnectionDone):
-            if not self.deferred.called:
-                log.err("ERROR: connecting has been lost because of:%s, sending data has been skipped" % reason)
-                self.deferred.errback(reason)
-
-class txZabbixSender(pyZabbixSenderBase):
-    '''
-    This class allows you to send data to a Zabbix server asynchronously, using the same
-    protocol used by the zabbix_server binary distributed by Zabbix.
-    '''
-
-    def _send(self,packet):
-        '''This method creates a connection, sends data and returns deferred to get a result'''
-        deferred = defer.Deferred()
-        connection = reactor.connectTCP(self.zserver,self.zport,SenderFactory(packet,deferred),self.timeout)
-        return deferred
+        return response
 
     def sendData(self, packet_clock=None, max_data_per_conn=None):
         '''
@@ -217,7 +88,12 @@ class txZabbixSender(pyZabbixSenderBase):
         Please note that **internal data is not deleted after *sendData* is executed**. You need to call *clearData* after sending it, if you want to remove currently stored data.
 
         #####Return:
-        A deferred list of each "send" operation results.
+        A list of *(result, msg)* associated to each "send" operation, where *result* is a boolean meaning success of the operation,
+        and *msg* is a message from the server in case of success, or exception in case of error.
+
+        In case of success, the server returns a message which is parsed by the function. The server message
+        contains counters for *processed* and *failed* (ignored) data items. Note that even if processed
+        data counter is 0 and all data items have been failed, it does not mean the error condition.
         '''
         if not max_data_per_conn or max_data_per_conn > len(self._data):
             max_data_per_conn = len(self._data)
@@ -234,11 +110,15 @@ class txZabbixSender(pyZabbixSenderBase):
                 sender_data['clock'] = packet_clock
 
             sender_data['data'] = self._data[i*max_data_per_conn:(i+1)*max_data_per_conn]
-            response = self._send(sender_data)
-            responses.append(response)
+            try:
+                response = self.send_packet(sender_data)
+            except Exception,ex:
+                responses.append((False,ex))
+            else:
+                responses.append((True,response))
             i += 1
 
-        return defer.DeferredList(responses)
+        return responses
 
     def sendDataOneByOne(self):
         '''
@@ -255,18 +135,14 @@ class txZabbixSender(pyZabbixSenderBase):
         None
 
         #####Return:
-        A deferred list of each "send" operation results.
+        A list of *(result, msg)* associated to each "send" operation, where *result* is a boolean meaning success of the operation,
+        and *msg* is a message from the server in case of success, or exception in case of error.
+
+        In case of success, the server returns a message which is parsed by the function. The server message
+        contains counters for *processed* and *failed* (ignored) data items. Note that even if processed
+        data counter is 0 and all data items have been failed, it does not mean the error condition.
         '''
-        retarray = []
-        for i in self._data:
-            if 'clock' in i:
-                d = self.sendSingle(i['host'], i['key'], i['value'], i['clock'])
-            else:
-                d = self.sendSingle(i['host'], i['key'], i['value'])
-
-            retarray.append(d)
-        return defer.DeferredList(retarray)
-
+        return self.sendData(max_data_per_conn=1)
 
     def sendSingle(self, host, key, value, clock=None):
         '''
@@ -286,7 +162,7 @@ class txZabbixSender(pyZabbixSenderBase):
             *Default value: None*
 
         #####Return:
-        A deferred for the operation results.
+        A message returned by the server.
         '''
         sender_data = {
             "request": "sender data",
@@ -295,8 +171,7 @@ class txZabbixSender(pyZabbixSenderBase):
 
         obj = self._createDataPoint(host, key, value, clock)
         sender_data['data'].append(obj)
-        return self._send(sender_data)
-
+        return self.send_packet(sender_data)
 
     def sendSingleLikeProxy(self, host, key, value, clock=None, proxy=None):
         '''
@@ -317,7 +192,7 @@ class txZabbixSender(pyZabbixSenderBase):
 
         * **proxy**: [in] [string] [optional] The name of the proxy to be recognized by the Zabbix server. If proxy is not specified, a normal "sendSingle" operation will be performed. *Default value: None*
         #####Return:
-        A deferred for the operation results.
+        A message returned by the server.
         '''
         # Proxy was not specified, so we'll do a "normal" sendSingle operation
         if proxy is None:
@@ -331,7 +206,7 @@ class txZabbixSender(pyZabbixSenderBase):
 
         obj = self._createDataPoint(host, key, value, clock)
         sender_data['data'].append(obj)
-        return self._send(sender_data)
+        return self.send_packet(sender_data)
 
 #####################################
 # --- Examples of usage ---

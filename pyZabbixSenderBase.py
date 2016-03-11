@@ -12,8 +12,13 @@ import re
 
 # If you're using an old version of python that don't have json available,
 # you can use simplejson instead: https://simplejson.readthedocs.org/en/latest/
-#import simplejson as json
-import json
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+class InvalidResponse(IOError):
+    pass
 
 class pyZabbixSenderBase:
     '''

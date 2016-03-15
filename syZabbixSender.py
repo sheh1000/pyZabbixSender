@@ -49,11 +49,11 @@ class syZabbixSender(pyZabbixSenderBase):
         response_raw = sock.recv(response_len)
         sock.close()
         response = json.loads(response_raw)
-        failed = self.FAILED_COUNTER.match(packet['info'].lower() if 'info' in packet else '')
-        processed = self.PROCESSED_COUNTER.match(packet['info'].lower() if 'info' in packet else '')
-        seconds_spent = self.SECONDS_SPENT.match(packet['info'].lower() if 'info' in packet else '')
+        failed = self.FAILED_COUNTER.match(response['info'].lower() if 'info' in response else '')
+        processed = self.PROCESSED_COUNTER.match(response['info'].lower() if 'info' in response else '')
+        seconds_spent = self.SECONDS_SPENT.match(response['info'].lower() if 'info' in response else '')
         if failed is None or processed is None:
-            raise InvalidResponse('Unable to parse server response',packet)
+            raise InvalidResponse('Unable to parse server response',packet,response)
         failed = int(failed.group(1))
         processed = int(processed.group(1))
         seconds_spent = float(seconds_spent.group(1)) if seconds_spent else None

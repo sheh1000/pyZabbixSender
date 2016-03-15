@@ -1,11 +1,11 @@
-from pyZabbixSender import pyZabbixSender
+from syZabbixSender import syZabbixSender
 
 # this import is optional. Here is used to create a timestamp to associate
 # to some data points, for example/testing purposes only.
 import time
 
 # Specifying server, but using default port
-z = pyZabbixSender("95.79.44.111")
+z = syZabbixSender("95.79.44.111")
 
 def printBanner(text):
     border_char = '#'
@@ -40,21 +40,6 @@ def test_01():
     #]
     print "---- Results content:"
     print results
-        
-    # What if we want to remove data already sent, and retry or do something
-    # else with the data no sent?
-    print "\n---- Data before the cleaning:\n%s\n" % str(z)
-    for (code, data_point) in results:
-        if code != z.RC_OK:
-            print "Failed to send: %s" % str(data_point)
-        else:
-            # This data_point was successfully sent, so we can remove from internal data
-            z.removeDataPoint(data_point)
-    print "\n---- Data after the cleaning:\n%s\n" % str(z)
-    
-    # at this point you can even retry sending the data calling the "sendDataOneByOne"
-    # or "sendData" methods 
-
     
 def test_02():
     '''
@@ -74,12 +59,7 @@ def test_02():
     z.addData("local.seva.test", "test1", 3)
     
     results = z.sendData(max_data_per_conn=3)
-    
-    # Now lets take a look at the return. Should be something like this:
-    #[ (0, {u'info': u'Processed 3 Failed 0 Total 3 Seconds spent 0.000062', u'response': u'success'}),
-    #  (0, {u'info': u'Processed 3 Failed 0 Total 3 Seconds spent 0.000057', u'response': u'success'}),
-    #  (0, {u'info': u'Processed 3 Failed 0 Total 3 Seconds spent 0.000056', u'response': u'success'}),
-    #  (1, {u'info': u'Processed 1 Failed 1 Total 2 Seconds spent 0.000041', u'response': u'success'})]
+    print "---- Results content:"
     print results
 
 

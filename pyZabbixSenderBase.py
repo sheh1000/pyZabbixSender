@@ -17,7 +17,7 @@ try:
 except ImportError:
     import simplejson as json
 
-class InvalidResponse(IOError):
+class InvalidResponse(Exception):
     pass
 
 class pyZabbixSenderBase:

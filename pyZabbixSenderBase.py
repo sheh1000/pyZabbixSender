@@ -159,3 +159,27 @@ class pyZabbixSenderBase:
             return True
 
         return False
+
+def recognize_response_raw(response_raw):
+    return recognize_response(json.loads(response_raw))
+
+FAILED_COUNTER = re.compile('^.*failed.+?(\d+).*$')
+PROCESSED_COUNTER = re.compile('^.*processed.+?(\d+).*$')
+SECONDS_SPENT = re.compile('^.*seconds spent.+?((-|\+|\d|\.|e|E)+).*$')
+
+def recognize_response(response):
+    failed = FAILED_COUNTER.match(response['info'].lower() if 'info' in response else '')
+    processed = PROCESSED_COUNTER.match(response['info'].lower() if 'info' in response else '')
+    seconds_spent = SECONDS_SPENT.match(response['info'].lower() if 'info' in response else '')
+
+    if failed is None or processed is None:
+        raise InvalidResponse('Unable to parse server response',packet,response_raw)
+    failed = int(failed.group(1))
+    processed = int(processed.group(1))
+    seconds_spent = float(seconds_spent.group(1)) if seconds_spent else None
+    response['info'] = {
+        'failed':failed,
+        'processed':processed,
+        'seconds spent':seconds_spent
+    }
+    return response

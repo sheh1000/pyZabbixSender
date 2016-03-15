@@ -22,10 +22,6 @@ class syZabbixSender(pyZabbixSenderBase):
     It uses exceptions to report errors.
     '''
 
-    FAILED_COUNTER = re.compile('^.*failed.+?(\d+).*$')
-    PROCESSED_COUNTER = re.compile('^.*processed.+?(\d+).*$')
-    SECONDS_SPENT = re.compile('^.*seconds spent.+?((-|\+|\d|\.|e|E)+).*$')
-
     def send_packet(self, packet):
         '''
         This is the method that actually sends the data to the zabbix server.
@@ -48,21 +44,7 @@ class syZabbixSender(pyZabbixSenderBase):
         response_len = struct.unpack('i', response_data_header)[0]
         response_raw = sock.recv(response_len)
         sock.close()
-        response = json.loads(response_raw)
-        failed = self.FAILED_COUNTER.match(response['info'].lower() if 'info' in response else '')
-        processed = self.PROCESSED_COUNTER.match(response['info'].lower() if 'info' in response else '')
-        seconds_spent = self.SECONDS_SPENT.match(response['info'].lower() if 'info' in response else '')
-        if failed is None or processed is None:
-            raise InvalidResponse('Unable to parse server response',packet,response)
-        failed = int(failed.group(1))
-        processed = int(processed.group(1))
-        seconds_spent = float(seconds_spent.group(1)) if seconds_spent else None
-        response['info'] = {
-            'failed':failed,
-            'processed':processed,
-            'seconds spent':seconds_spent
-        }
-        return response
+        return recognize_response_raw(response_raw)
 
     def sendData(self, packet_clock=None, max_data_per_conn=None):
         '''
@@ -207,92 +189,3 @@ class syZabbixSender(pyZabbixSenderBase):
         obj = self._createDataPoint(host, key, value, clock)
         sender_data['data'].append(obj)
         return self.send_packet(sender_data)
-
-#####################################
-# --- Examples of usage ---
-#####################################
-#
-# Initiating a pyZabbixSender object -
-# z = pyZabbixSender() # Defaults to using ZABBIX_SERVER,ZABBIX_PORT
-# z = pyZabbixSender(verbose=True) # Prints all sending failures to stderr
-# z = pyZabbixSender(server="172.0.0.100",verbose=True)
-# z = pyZabbixSender(server="zabbix-server",port=10051)
-# z = pyZabbixSender("zabbix-server", 10051)
-
-# --- Adding data to send later ---
-# Host, Key, Value are all necessary
-# z.addData("test_host","test_trap","12")
-#
-# Optionally you can provide a specific timestamp for the sample
-# z.addData("test_host","test_trap","13",1365787627)
-#
-# If you provide no timestamp, you still can assign one when sending, or let
-# zabbix server to put the timestamp when the message is received.
-
-# --- Printing values ---
-# Not that useful, but if you would like to see your data in tuple form:
-# z.printData()
-
-# --- Sending data ---
-#
-# Just sending a single data point (you don't need to call add_value for this
-# to work):
-# z.sendSingle("test_host","test_trap","12")
-#
-# Sending everything at once, with no concern about
-# individual item failure -
-#
-# result = z.sendData()
-# for r in result:
-#     print "Result: %s -> %s" % (str(r[0]), r[1])
-#
-# If you're ok with the result, you can delete the data inside the sender, to
-# allow a new round of data feed/send.
-# z.clearData()
-#
-# If you want to specify a timestamp to all values without one, you can specify
-# the packet_clock parameter:
-# z.sendData(packet_clock=1365787627)
-#
-# When you're sending data over a slow connection, you may find useful the
-# possibility to send data in packets with no more than max_data_per_conn
-# data points on it.
-# All the data will be sent, but in smaller packets.
-# For example, if you want to send 4000 data points in packets containing no
-# more than 200 of them:
-#
-# results = z.sendData(max_data_per_conn=200)
-# for partial_result in results:
-#     print partial_result
-#
-# Sending every item individually so that we can capture
-# success or failure
-#
-# results = z.sendDataOneByOne()
-# for (code,data) in results:
-#   if code != z.RC_OK:
-#      print "Failed to send: %s" % str(data)
-#
-#
-#####################################
-# Mini example of a working program #
-#####################################
-#
-# import sys
-# sys.path.append("/path/to/pyZabbixSender.py")
-# from pyZabbixSender import pyZabbixSender
-#
-# z = pyZabbixSender() # Defaults to using ZABBIX_SERVER, ZABBIX_PORT
-# z.addData("test_host","test_trap_1","12")
-# z.addData("test_host","test_trap_2","13",1366033479)
-# 
-# Two ways of printing internal data
-# z.printData()
-# print z
-#
-# results = z.sendDataOneByOne()
-# for (code,data) in results:
-#   if code != z.RC_OK:
-#      print "Failed to send: %s" % str(data)
-# z.clearData()
-#####################################

@@ -20,11 +20,6 @@ import time
 import sys
 import re
 
-# If you're using an old version of python that don't have json available,
-# you can use simplejson instead: https://simplejson.readthedocs.org/en/latest/
-#import simplejson as json
-import json
-
 from pyZabbixSenderBase import *
 
 class SenderProtocol(protocol.Protocol):

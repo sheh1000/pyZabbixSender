@@ -26,7 +26,72 @@ pip install "git+git@github.com:baseride/pyZabbixSender.git"
 Usage
 -----
 
-Source code contains samples and comments to allows you start using it in no time. Here's a small example:
+Here's a small example (synchronous code):
+
+```python
+from pyZabbixSender.sy import syZabbixSender
+
+# Creating a sender object
+z = syZabbixSender(server="zabbix-server", port=10051)
+
+# Adding data (without timestamp)
+z.addData(hostname="test_host", key="test_trap_1", value="12")
+z.addData("test_host", "test_trap_2", "2.43")
+
+# Adding data (with timestamp)
+z.addData("test_host", "test_trap_2", "2.43", 1365787627)
+
+# Ready to send your data?
+results = z.sendData()
+
+# Check if everything was sent as expected
+if not results[0][0]:
+  print "oops! Sending data has been failed"
+elif results[0][1]['parsed']['processed'] != 3:
+  print "oops! Zabbix doesn't recognize passed identities"
+
+# Clear internal data to start populating again
+z.clearData()
+
+# Wants to send a single data point right now?
+z.sendSingle("test_host","test_trap","12")
+```
+
+The asynchronous code looks mostly the same, except asynchronous calls to zend...() functions:
+
+```python
+from pyZabbixSender.tx import txZabbixSender
+from twisted.internet import reactor, defer
+
+@defer.inlineCallbacks
+def test():
+  # Creating a sender object
+  z = txZabbixSender(server="zabbix-server", port=10051)
+
+  # Adding data (without timestamp)
+  z.addData(hostname="test_host", key="test_trap_1", value="12")
+  z.addData("test_host", "test_trap_2", "2.43")
+
+  # Adding data (with timestamp)
+  z.addData("test_host", "test_trap_2", "2.43", 1365787627)
+
+  # Ready to send your data?
+  results = yield z.sendData() # NOTE an asynchronous call
+
+  # Check if everything was sent as expected
+  if not results[0][0]:
+    print "oops! Sending data has been failed"
+  elif results[0][1]['parsed']['processed'] != 3:
+    print "oops! Zabbix doesn't recognize passed identities"
+
+  # Clear internal data to start populating again
+  z.clearData()
+
+  # Wants to send a single data point right now?
+  yield z.sendSingle("test_host","test_trap","12") # NOTE an asynchronous call
+```
+
+The backward-compatible code looks mostly the same, except return value processing:
 
 ```python
 from pyZabbixSender import pyZabbixSender
@@ -53,40 +118,6 @@ z.clearData()
 
 # Wants to send a single data point right now?
 z.sendSingle("test_host","test_trap","12")
-```
-
-The asynchronous code looks mostly the same, except asynchronous calls to zend...() functions and result processing:
-
-```python
-from txZabbixSender import txZabbixSender
-from twisted.internet import reactor, defer
-
-@defer.inlineCallbacks
-def test():
-  # Creating a sender object
-  z = txZabbixSender(server="zabbix-server", port=10051)
-
-  # Adding data (without timestamp)
-  z.addData(hostname="test_host", key="test_trap_1", value="12")
-  z.addData("test_host", "test_trap_2", "2.43")
-
-  # Adding data (with timestamp)
-  z.addData("test_host", "test_trap_2", "2.43", 1365787627)
-
-  # Ready to send your data?
-  results = yield z.sendData() # NOTE an asynchronous call
-
-  # Check if everything was sent as expected
-  if not results[0][0]: # NOTE the asynchronous call returns a slightly dirrerent structure
-    print "oops! Sending data has been failed"
-  elif results[0][1]['parsed']['processed'] != 3:
-    print "oops! Zabbix doesn't recognize passed identities"
-
-  # Clear internal data to start populating again
-  z.clearData()
-
-  # Wants to send a single data point right now?
-  yield z.sendSingle("test_host","test_trap","12") # NOTE an asynchronous call
 ```
 
 

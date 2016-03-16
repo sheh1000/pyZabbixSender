@@ -8,19 +8,14 @@ def read(fname):
 
 setupconf = dict(
     name="pyZabbixSender",
-    py_modules=[
-        "txZabbixSender",
-        "pyZabbixSender",
-        "pyZabbixSenderBase",
-    ],
     author="Kurt Momberg",
     author_email="kurtqm@yahoo.com.ar",
     description="Python implementation of zabbix_sender.",
     long_description = read('README.md'),
     url="https://github.com/kmomberg/pyZabbixSender",
-    version="0.1",
+    version="0.2",
     license = "GNU GPL v2",
-#    packages = find_packages(),
+    packages = find_packages(),
 #    install_requires = [???],
     classifiers = [
         "Operating System :: OS Independent",

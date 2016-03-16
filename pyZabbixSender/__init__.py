@@ -1,0 +1,1 @@
+from pyZabbixSender import pyZabbixSender

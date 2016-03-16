@@ -1,4 +1,4 @@
-from txZabbixSender import txZabbixSender
+from pyZabbixSender.tx import txZabbixSender
 
 # this import is optional. Here is used to create a timestamp to associate
 # to some data points, for example/testing purposes only.

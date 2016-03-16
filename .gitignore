@@ -1,0 +1,16 @@
+*.log
+*.pot
+*.pyc
+*.swp
+
+.vagrant
+.grunt
+
+# extra
+.idea
+.DS_Store
+._*
+*~
+*.egg-info
+build
+dist

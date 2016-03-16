@@ -57,7 +57,7 @@ z.clearData()
 z.sendSingle("test_host","test_trap","12")
 ```
 
-The asynchronous code looks mostly the same, except asynchronous calls to zend...() functions:
+The asynchronous code looks mostly the same, except asynchronous calls to send...() functions:
 
 ```python
 from pyZabbixSender.tx import txZabbixSender

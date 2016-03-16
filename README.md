@@ -16,11 +16,11 @@ Installation
 
 Install the package using a pip from the original repository:
 ```bash
-pip install "git+git@github.com:kmomberg/pyZabbixSender.git"
+pip install "git+git://github.com/kmomberg/pyZabbixSender.git"
 ```
 or from one of the mirrors, like:
 ```bash
-pip install "git+git@github.com:baseride/pyZabbixSender.git"
+pip install "git+git://github.com/baseride/pyZabbixSender.git"
 ```
 
 Usage

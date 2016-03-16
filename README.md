@@ -47,7 +47,7 @@ results = z.sendData()
 # Check if everything was sent as expected
 if not results[0][0]:
   print "oops! Sending data has been failed"
-elif results[0][1]['parsed']['processed'] != 3:
+elif results[0][1]['info']['processed'] != 3:
   print "oops! Zabbix doesn't recognize passed identities"
 
 # Clear internal data to start populating again
@@ -81,7 +81,7 @@ def test():
   # Check if everything was sent as expected
   if not results[0][0]:
     print "oops! Sending data has been failed"
-  elif results[0][1]['parsed']['processed'] != 3:
+  elif results[0][1]['info']['processed'] != 3:
     print "oops! Zabbix doesn't recognize passed identities"
 
   # Clear internal data to start populating again

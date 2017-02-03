@@ -6,6 +6,7 @@
 # License: GNU GPLv2
 
 import socket
+import socks
 import struct
 import time
 import sys

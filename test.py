@@ -4,8 +4,16 @@ from pyZabbixSender import pyZabbixSender
 # to some data points, for example/testing purposes only.
 import time
 
-# Specifying server, but using default port
+# If the server where pyZabbixSender located does not have a direct Internet 
+# connection you can specify proxy settings: 
+# pyZabbixSender(
+# 	server="Zabbix_ip", 
+# 	port="Zabbix_port", 
+# 	sockstype="socks.SOCKS5", 
+# 	netproxy="proxy_ip", 
+# 	proxyport=8080)
 z = pyZabbixSender("127.0.0.1")
+
 
 def printBanner(text):
     border_char = '#'

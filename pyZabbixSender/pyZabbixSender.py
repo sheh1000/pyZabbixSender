@@ -36,6 +36,9 @@ class pyZabbixSender(pyZabbixSenderBase):
         data_header = str(struct.pack('q', data_length))
         data_to_send = 'ZBXD\1' + str(data_header) + str(mydata)
         try:
+            if self.netproxy:
+                socks.set_default_proxy(self.sockstype, self.netproxy, self.proxyport)
+                socket.socket = socks.socksocket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self.zserver, self.zport))
             sock.send(data_to_send)

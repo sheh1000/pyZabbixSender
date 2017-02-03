@@ -27,7 +27,7 @@ class pyZabbixSenderBase:
     ZABBIX_SERVER = "127.0.0.1"
     ZABBIX_PORT   = 10051
 
-    def __init__(self, server=ZABBIX_SERVER, port=ZABBIX_PORT, verbose=False):
+    def __init__(self, server=ZABBIX_SERVER, port=ZABBIX_PORT, proxytype=False, netproxy=False, proxyport=False, verbose=False):
         '''
         #####Description:
         This is the constructor, to obtain an object of type pyZabbixSender, linked to work with a specific server/port.
@@ -44,6 +44,9 @@ class pyZabbixSenderBase:
         '''
         self.zserver = server
         self.zport   = port
+        self.netproxy = netproxy
+        self.proxytype = proxytype
+        self.proxyport = proxyport
         self.verbose = verbose
         self.timeout = 5         # Socket connection timeout.
         self._data = []         # This is to store data to be sent later.

@@ -6,11 +6,11 @@ import time
 
 # If the server where pyZabbixSender located does not have a direct Internet 
 # connection you can specify proxy settings: 
-# pyZabbixSender(
-# 	server="Zabbix_ip", 
-# 	port="Zabbix_port", 
-# 	sockstype="socks.SOCKS5", 
-# 	netproxy="proxy_ip", 
+# z = pyZabbixSender(
+# 	server="127.0.0.1", 
+# 	port=10051, 
+# 	proxytype=5, 
+# 	netproxy="127.0.0.1", 
 # 	proxyport=8080)
 z = pyZabbixSender("127.0.0.1")
 
